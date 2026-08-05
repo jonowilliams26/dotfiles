@@ -1,0 +1,45 @@
+{
+  "name": "@jonowilliams26/pi-dotfiles",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal Pi extensions, skills, and prompt templates",
+  "keywords": [
+    "pi-package"
+  ],
+  "files": [
+    ".agents/skills",
+    ".pi/extensions",
+    ".pi/prompts",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "pack:check": "npm pack --dry-run",
+    "check": "npm run typecheck && npm run pack:check"
+  },
+  "pi": {
+    "extensions": [
+      "./.pi/extensions"
+    ],
+    "skills": [
+      "./.agents/skills"
+    ],
+    "prompts": [
+      "./.pi/prompts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.83.0",
+    "@types/node": "^24.0.0",
+    "typebox": "^1.3.7",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
