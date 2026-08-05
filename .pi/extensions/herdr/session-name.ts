@@ -36,17 +36,25 @@ export default function herdrSessionName(pi: ExtensionAPI) {
 
 		const paneId = process.env.HERDR_PANE_ID!;
 		const herdrName = sessionName ? toHerdrAgentName(sessionName) : undefined;
-		const args = herdrName
+		const agentArgs = herdrName
 			? ["agent", "rename", paneId, herdrName]
 			: ["agent", "rename", paneId, "--clear"];
-		const result = await pi.exec("herdr", args, { timeout: 5000 });
+		const paneArgs = sessionName
+			? ["pane", "rename", paneId, sessionName]
+			: ["pane", "rename", paneId, "--clear"];
+		const [agentResult, paneResult] = await Promise.all([
+			pi.exec("herdr", agentArgs, { timeout: 5000 }),
+			pi.exec("herdr", paneArgs, { timeout: 5000 }),
+		]);
 
-		if (result.code !== 0) {
-			ctx.ui.notify(`Could not sync Herdr agent name: ${errorDetail(result.stdout, result.stderr, result.code)}`, "warning");
-			return;
+		if (agentResult.code !== 0) {
+			ctx.ui.notify(`Could not sync Herdr agent name: ${errorDetail(agentResult.stdout, agentResult.stderr, agentResult.code)}`, "warning");
+		}
+		if (paneResult.code !== 0) {
+			ctx.ui.notify(`Could not sync Herdr pane name: ${errorDetail(paneResult.stdout, paneResult.stderr, paneResult.code)}`, "warning");
 		}
 
-		if (notifyNormalization && sessionName && herdrName !== sessionName) {
+		if (agentResult.code === 0 && notifyNormalization && sessionName && herdrName !== sessionName) {
 			ctx.ui.notify(`Herdr agent name normalized to ${herdrName}`, "info");
 		}
 	}
