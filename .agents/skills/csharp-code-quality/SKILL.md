@@ -46,6 +46,21 @@ using var response = await fixture.ApiClient.PostAsJsonAsync(
 );
 ```
 
+## Conditional statements
+
+Always use braces for `if` statement bodies, including single statements and early returns. Format opening braces on the line after the condition.
+
+```csharp
+// Bad
+if (condition) return;
+
+// Good
+if (condition)
+{
+    return;
+}
+```
+
 ## Immutable data types
 
 Define immutable data types as `record` types whose properties are `init` only. Do not model immutable data with a `class` or properties using `set`.
