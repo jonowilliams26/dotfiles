@@ -86,7 +86,10 @@ async function discardChanges(pi: ExtensionAPI, repository: string): Promise<voi
 	}
 }
 
-async function switchToDefaultBranch(pi: ExtensionAPI, ctx: ExtensionCommandContext): Promise<void> {
+async function switchToDefaultBranch(
+	pi: ExtensionAPI,
+	ctx: ExtensionCommandContext,
+): Promise<{ branch: string; remoteBranch: string } | undefined> {
 	await ctx.waitForIdle();
 
 	const root = await git(pi, ctx.cwd, ["rev-parse", "--show-toplevel"]);
@@ -151,20 +154,38 @@ async function switchToDefaultBranch(pi: ExtensionAPI, ctx: ExtensionCommandCont
 		`Could not fast-forward ${branch} from ${remoteBranch}`,
 	);
 
-	ctx.ui.notify(`Switched to ${branch} and pulled the latest changes from ${remoteBranch}`, "info");
+	return { branch, remoteBranch };
 }
 
 export default function gitDefaultBranchExtension(pi: ExtensionAPI) {
 	const command = {
-		description: "Discard confirmed changes, switch to the default branch, and pull the latest remote changes",
+		description: "Switch to the updated default branch, reload Pi, and start a new session",
 		handler: async (_args: string, ctx: ExtensionCommandContext) => {
+			let switched: { branch: string; remoteBranch: string } | undefined;
 			try {
-				await switchToDefaultBranch(pi, ctx);
+				switched = await switchToDefaultBranch(pi, ctx);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				ctx.ui.notify(message, "error");
 			} finally {
 				ctx.ui.setStatus(STATUS_KEY, undefined);
+			}
+
+			if (!switched) return;
+
+			// Session replacement reloads and rebinds Pi's extensions and resources.
+			// Use only the replacement context after this succeeds; the original is stale.
+			const newSession = await ctx.newSession({
+				withSession: async (replacementCtx) => {
+					replacementCtx.ui.notify(
+						`Switched to ${switched.branch}, pulled the latest changes from ${switched.remoteBranch}, reloaded Pi, and started a new session`,
+						"info",
+					);
+				},
+			});
+
+			if (newSession.cancelled) {
+				ctx.ui.notify("New session cancelled", "info");
 			}
 		},
 	};
