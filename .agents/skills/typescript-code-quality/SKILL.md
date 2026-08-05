@@ -112,6 +112,20 @@ import { createClient } from "package";
 import type { ClientOptions } from "package";
 ```
 
+## Conditional statements
+
+Always use braces for `if` statement bodies, including single statements and early returns. Format opening braces on the same line as the condition.
+
+```typescript
+// Bad
+if (condition) return;
+
+// Good
+if (condition) {
+  return;
+}
+```
+
 ## Function parameters
 
 When a function accepts multiple parameters, use one object parameter so each argument's purpose is explicit at the call site.
