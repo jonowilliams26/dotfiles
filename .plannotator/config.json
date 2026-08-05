@@ -11,7 +11,7 @@
   "displayName": "jono",
   "prompts": {
     "review": {
-      "denied": "\n\nThe feedback above comes from a human reviewer. Make the requested corrections in the code. Focus only on addressing this feedback; do not perform a separate code review or introduce unrelated changes. Run the relevant tests or checks after making the corrections. If any request is unclear, conflicts with the codebase, or cannot be applied safely, explain the issue and ask for clarification before proceeding with that item. When finished, briefly summarize what you changed and how you validated it."
+      "denied": "\n\nThe feedback above comes from a human reviewer. If the reviewer is asking a question, answer the question and do not make any code changes. Otherwise, make the requested corrections in the code. Focus only on addressing this feedback; do not perform a separate code review or introduce unrelated changes. Run the relevant tests or checks after making the corrections. If any request is unclear, conflicts with the codebase, or cannot be applied safely, explain the issue and ask for clarification before proceeding with that item. When finished, briefly summarize what you changed and how you validated it."
     }
   }
 }
