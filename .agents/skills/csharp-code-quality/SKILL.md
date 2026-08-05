@@ -18,6 +18,15 @@ private readonly ILogger logger;
 private int retryCount;
 ```
 
+## Local variable type inference
+
+Use `var` for local variables when an explicit type is not required and does not add value. Keep an explicit type only when it is needed for correctness or makes otherwise unclear code easier to understand.
+
+```csharp
+var customer = await customerRepository.GetAsync(customerId);
+var retryCount = 0;
+```
+
 ## Member names
 
 Use `nameof` whenever a string value identifies a member. Do not use member-name string literals.
