@@ -18,6 +18,18 @@ private readonly ILogger logger;
 private int retryCount;
 ```
 
+## Local variable types
+
+Use `var` when the type is clear from the assigned expression and writing the explicit type adds no value. Avoid repeating a type that is already evident from an object creation expression.
+
+```csharp
+// Bad
+ExampleResponse response = new ExampleResponse();
+
+// Good
+var response = new ExampleResponse();
+```
+
 ## Member names
 
 Use `nameof` whenever a string value identifies a member. Do not use member-name string literals.
