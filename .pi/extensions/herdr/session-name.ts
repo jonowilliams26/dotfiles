@@ -27,6 +27,17 @@ function errorDetail(stdout: string, stderr: string, code: number | null): strin
 }
 
 export default function herdrSessionName(pi: ExtensionAPI) {
+	async function clearPaneName(ctx: ExtensionContext): Promise<void> {
+		if (!isHerdrTui(ctx)) return;
+
+		const paneId = process.env.HERDR_PANE_ID!;
+		const result = await pi.exec("herdr", ["pane", "rename", paneId, "--clear"], { timeout: 5000 });
+
+		if (result.code !== 0) {
+			ctx.ui.notify(`Could not sync Herdr pane name: ${errorDetail(result.stdout, result.stderr, result.code)}`, "warning");
+		}
+	}
+
 	async function syncName(
 		sessionName: string | undefined,
 		ctx: ExtensionContext,
@@ -59,10 +70,15 @@ export default function herdrSessionName(pi: ExtensionAPI) {
 		}
 	}
 
-	pi.on("session_start", async (_event, ctx) => {
-		// Preserve a name assigned by `herdr agent start` when the Pi session is unnamed.
+	pi.on("session_start", async (event, ctx) => {
 		const sessionName = pi.getSessionName();
-		if (sessionName) await syncName(sessionName, ctx, false);
+		if (sessionName) {
+			await syncName(sessionName, ctx, false);
+		} else if (event.reason === "new") {
+			// Clear the previous session's pane name while preserving the agent name
+			// assigned by `herdr agent start`.
+			await clearPaneName(ctx);
+		}
 	});
 
 	pi.on("session_info_changed", async (event, ctx) => {
