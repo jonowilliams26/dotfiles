@@ -19,7 +19,7 @@ Personal [Pi](https://pi.dev) extensions, skills, and prompt templates distribut
 
 ## Skills
 
-Skills are available to Pi automatically and can also be invoked explicitly with `/skill:<name>`.
+Once the package is installed, skills are available to Pi automatically and can also be invoked explicitly with `/skill:<name>`.
 
 | Skill | Overview |
 | --- | --- |
@@ -42,29 +42,33 @@ Skills are available to Pi automatically and can also be invoked explicitly with
 | --- | --- |
 | `/pr [additional context]` | Commits all repository changes, pushes a descriptive branch, and creates a non-draft GitHub pull request. |
 
-## Install from GitHub
+## Install into a project
 
-Pi installs packages globally by default, making these resources available in every project:
+Install the package project-locally from the target project's root:
 
 ```bash
-pi install git:github.com/jonowilliams26/dotfiles
+pi install git:github.com/jonowilliams26/dotfiles -l
 ```
 
-Update the package after new changes are pushed:
+The `-l` flag records the package in that project's `.pi/settings.json`; the package is not installed globally or enabled in unrelated projects. Commit the settings change if the project should share the package with its contributors.
+
+Update installed packages after new changes are pushed:
 
 ```bash
 pi update --extensions
 ```
 
-Remove the package with:
+Remove the package from the project with:
 
 ```bash
-pi remove git:github.com/jonowilliams26/dotfiles
+pi remove git:github.com/jonowilliams26/dotfiles -l
 ```
 
-Run `/reload` in an active Pi session after installing or updating the package.
+Run `/reload` in an active Pi session after installing, updating, or removing the package. If the project already contains copied versions of these skills, extensions, or prompts, remove those copies before installing the package to avoid resource-name collisions.
 
 ## Development
+
+Package resources live outside Pi's auto-discovered `.pi/` and `.agents/` project directories. Cloning this repository therefore does not enable them; Pi loads them only when the package is explicitly installed or passed temporarily with `pi -e .`.
 
 Install development dependencies and validate the extensions and package contents:
 

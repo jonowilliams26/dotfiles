@@ -8,9 +8,9 @@
     "pi-package"
   ],
   "files": [
-    ".agents/skills",
-    ".pi/extensions",
-    ".pi/prompts",
+    "extensions",
+    "skills",
+    "prompts",
     "README.md"
   ],
   "scripts": {
@@ -20,13 +20,13 @@
   },
   "pi": {
     "extensions": [
-      "./.pi/extensions"
+      "./extensions"
     ],
     "skills": [
-      "./.agents/skills"
+      "./skills"
     ],
     "prompts": [
-      "./.pi/prompts"
+      "./prompts"
     ]
   },
   "peerDependencies": {

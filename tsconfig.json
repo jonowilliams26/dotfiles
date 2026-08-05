@@ -15,7 +15,7 @@
     ]
   },
   "include": [
-    ".pi/extensions/**/*.ts"
+    "extensions/**/*.ts"
   ],
   "exclude": [
     "node_modules"
