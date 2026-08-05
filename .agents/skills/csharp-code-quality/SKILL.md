@@ -18,16 +18,13 @@ private readonly ILogger logger;
 private int retryCount;
 ```
 
-## Local variable types
+## Local variable type inference
 
-Use `var` when the type is clear from the assigned expression and writing the explicit type adds no value. Avoid repeating a type that is already evident from an object creation expression.
+Use `var` for local variables when an explicit type is not required and does not add value. Keep an explicit type only when it is needed for correctness or makes otherwise unclear code easier to understand.
 
 ```csharp
-// Bad
-ExampleResponse response = new ExampleResponse();
-
-// Good
-var response = new ExampleResponse();
+var customer = await customerRepository.GetAsync(customerId);
+var retryCount = 0;
 ```
 
 ## Member names
