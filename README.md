@@ -40,6 +40,7 @@ Once the package is installed, skills are available to Pi automatically and can 
 
 | Template | Description |
 | --- | --- |
+| `/handover [additional context or focus]` | Produces a self-contained, zero-context handover for continuing the current task in a new session. |
 | `/pr [additional context]` | Commits all repository changes, pushes a descriptive branch, and creates a non-draft GitHub pull request. |
 
 ## Install into a project
