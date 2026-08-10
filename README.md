@@ -6,7 +6,7 @@ Personal [Pi](https://pi.dev) extensions, skills, and prompt templates distribut
 
 | Extension | Overview |
 | --- | --- |
-| Git | Provides commands for returning a repository to its updated default branch and for creating task-aware Git worktrees in Herdr. |
+| Git | Provides commands for returning a repository to its updated default branch and for creating task-aware Git worktrees in adjacent Herdr panes. |
 | Herdr | Reports Pi's working, blocked, and idle states to Herdr and synchronizes Pi session names with Herdr agent and pane names. |
 
 ## Extension commands
@@ -15,7 +15,9 @@ Personal [Pi](https://pi.dev) extensions, skills, and prompt templates distribut
 | --- | --- |
 | `/main` | Discard confirmed uncommitted changes, switch to the remote's default branch, fast-forward it, and start a new Pi session. |
 | `/master` | Alias for `/main`. |
-| `/worktree <task description>` | Generate task-aware Git and Herdr names, create a worktree from the latest remote default branch, and launch Pi in its Herdr pane. |
+| `/worktree <task description>` | Generate task-aware Git and Herdr names, create a worktree from the latest remote default branch, and launch Pi in a new pane beside the invoking pane. |
+
+`/worktree` must run inside a Herdr-managed Pi pane. It creates one Git worktree under Herdr's configured worktree directory, then creates exactly one sibling pane in the current tab with that worktree as its working directory. Wide panes split right; narrow or tall panes split down. The new pane receives the generated task label and starts a dedicated named Pi agent. Focus stays on the invoking pane until Herdr confirms that the new Pi agent launched successfully; no workspace or tab is created, and partial failures leave any worktree or pane in place for manual recovery.
 
 ## Skills
 
@@ -81,6 +83,6 @@ npm install
 npm run check
 ```
 
-`npm run typecheck` checks all extensions using the root TypeScript configuration. `npm run pack:check` shows the files that would be included in an npm package without publishing it.
+`npm run typecheck` checks all extensions using the root TypeScript configuration. `npm test` runs the automated extension coverage. `npm run pack:check` shows the files that would be included in an npm package without publishing it.
 
 Pi packages execute with the user's full system permissions. Review package changes before installing or updating them.

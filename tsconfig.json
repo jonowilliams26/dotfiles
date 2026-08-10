@@ -15,7 +15,8 @@
     ]
   },
   "include": [
-    "extensions/**/*.ts"
+    "extensions/**/*.ts",
+    "tests/**/*.ts"
   ],
   "exclude": [
     "node_modules"

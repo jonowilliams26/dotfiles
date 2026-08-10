@@ -1,4 +1,7 @@
 import { randomBytes } from "node:crypto";
+import { mkdir, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename, dirname, join, resolve } from "node:path";
 import {
 	createAgentSession,
 	DefaultResourceLoader,
@@ -9,6 +12,7 @@ import {
 	type ExtensionAPI,
 	type ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
+import { parse as parseToml } from "smol-toml";
 import { Type } from "typebox";
 
 const STATUS_KEY = "git-worktree";
@@ -17,6 +21,8 @@ const MAX_AGENT_NAME_LENGTH = 32;
 const MAX_HERDR_LABEL_LENGTH = 64;
 const RANDOM_SUFFIX_BYTES = 3;
 const UNIQUE_SUFFIX_LENGTH = RANDOM_SUFFIX_BYTES * 2 + 1;
+const DEFAULT_HERDR_WORKTREE_DIRECTORY = "~/.herdr/worktrees";
+const WIDE_PANE_ASPECT_RATIO = 2;
 const MAX_GENERATED_BRANCH_NAME_LENGTH = MAX_BRANCH_NAME_LENGTH - UNIQUE_SUFFIX_LENGTH;
 const MAX_GENERATED_AGENT_NAME_LENGTH = MAX_AGENT_NAME_LENGTH - UNIQUE_SUFFIX_LENGTH;
 const BRANCH_PREFIX_PATTERN = "(?:feature|bugfix|hotfix|chore|docs|refactor|test|ci|build|perf|security|release|revert)";
@@ -42,7 +48,7 @@ Choose a Git branch name using lowercase kebab-case in the form <prefix>/<short-
 
 Also choose:
 - an agent name that is concise, memorable, related to the task, and valid for Herdr
-- a short human-readable Herdr label that describes the task
+- a short human-readable Herdr pane label that describes the task
 
 Call create_worktree_metadata exactly once. Do not answer with prose.`;
 
@@ -60,13 +66,14 @@ const WORKTREE_METADATA_PARAMETERS = Type.Object(
 			pattern: "^[a-z](?:[a-z0-9_-]*[a-z0-9])?$",
 		}),
 		herdrLabel: Type.String({
-			description: "Short human-readable label for the Herdr workspace and pane",
+			description: "Short human-readable label for the Herdr pane",
 			maxLength: MAX_HERDR_LABEL_LENGTH,
 		}),
 	},
 	{ additionalProperties: false },
 );
 
+type CommandExecutor = Pick<ExtensionAPI, "exec">;
 type ExecResult = Awaited<ReturnType<ExtensionAPI["exec"]>>;
 
 type Success<TValue> = Readonly<{
@@ -96,10 +103,12 @@ type WorktreeError =
 	| Readonly<{ type: "command-exception"; action: string; cause: unknown }>
 	| Readonly<{ type: "invalid-herdr-response"; action: string }>;
 
-type CreatedWorktree = Readonly<{
-	paneId: string;
-	path: string;
+type PaneSize = Readonly<{
+	height: number;
+	width: number;
 }>;
+
+type SplitDirection = "down" | "right";
 
 type WorktreeMetadata = Readonly<{
 	branchName: string;
@@ -170,7 +179,9 @@ async function generateWorktreeMetadata({
 	taskDescription: string;
 	suffix: string;
 }): Promise<Result<WorktreeMetadata, WorktreeError>> {
-	if (!ctx.model) return failure({ type: "model-not-selected" });
+	if (!ctx.model) {
+		return failure({ type: "model-not-selected" });
+	}
 
 	const provider = ctx.modelRegistry.getProvider(ctx.model.provider);
 	if (!provider) {
@@ -233,7 +244,9 @@ async function generateWorktreeMetadata({
 
 		try {
 			await session.prompt(`Task description:\n${taskDescription}`, { expandPromptTemplates: false });
-			if (generatedMetadata) return success(generatedMetadata);
+			if (generatedMetadata) {
+				return success(generatedMetadata);
+			}
 
 			return failure({
 				type: "metadata-generation-failed",
@@ -260,7 +273,7 @@ async function runCommand({
 	action,
 	timeout,
 }: {
-	pi: ExtensionAPI;
+	pi: CommandExecutor;
 	command: string;
 	args: string[];
 	cwd?: string;
@@ -321,17 +334,27 @@ async function chooseRemote({
 		cwd: repository,
 		action: "Could not list Git remotes",
 	});
-	if (!result.ok) return result;
+	if (!result.ok) {
+		return result;
+	}
 
 	const remotes = result.value.stdout
 		.split(/\r?\n/)
 		.map((remote) => remote.trim())
 		.filter(Boolean);
 
-	if (remotes.length === 0) return failure({ type: "no-remotes" });
-	if (remotes.includes("origin")) return success("origin");
-	if (remotes.length === 1) return success(remotes[0]);
-	if (!ctx.hasUI) return failure({ type: "remote-selection-required", remotes });
+	if (remotes.length === 0) {
+		return failure({ type: "no-remotes" });
+	}
+	if (remotes.includes("origin")) {
+		return success("origin");
+	}
+	if (remotes.length === 1) {
+		return success(remotes[0]);
+	}
+	if (!ctx.hasUI) {
+		return failure({ type: "remote-selection-required", remotes });
+	}
 
 	const remote = await ctx.ui.select("Select the remote for the new worktree", remotes);
 	return remote ? success(remote) : failure({ type: "cancelled" });
@@ -353,7 +376,9 @@ async function getDefaultBranch({
 		cwd: repository,
 		action: `Could not determine ${remote}'s default branch`,
 	});
-	if (!result.ok) return result;
+	if (!result.ok) {
+		return result;
+	}
 
 	const match = result.value.stdout.match(/^ref:\s+refs\/heads\/(.+)\s+HEAD\s*$/m);
 	return match
@@ -361,30 +386,152 @@ async function getDefaultBranch({
 		: failure({ type: "default-branch-not-found", remote });
 }
 
-function parseCreatedWorktree(stdout: string): Result<CreatedWorktree, WorktreeError> {
+function usableEnvironmentPath(value: string | undefined): string | undefined {
+	return value && value !== "~" ? value : undefined;
+}
+
+function getHerdrHomeDirectory(): string | undefined {
+	if (process.platform !== "win32") {
+		return usableEnvironmentPath(process.env.HOME);
+	}
+
+	const userProfile = usableEnvironmentPath(process.env.USERPROFILE);
+	if (userProfile) {
+		return userProfile;
+	}
+
+	const homeDrive = usableEnvironmentPath(process.env.HOMEDRIVE);
+	const homePath = usableEnvironmentPath(process.env.HOMEPATH);
+	if (homeDrive && homePath && /^[\\/]/.test(homePath)) {
+		return `${homeDrive}${homePath}`;
+	}
+
+	return usableEnvironmentPath(process.env.HOME);
+}
+
+function getHerdrConfigPath(): string {
+	if (process.env.HERDR_CONFIG_PATH) {
+		return resolve(process.env.HERDR_CONFIG_PATH);
+	}
+
+	if (process.env.XDG_CONFIG_HOME) {
+		return join(process.env.XDG_CONFIG_HOME, "herdr", "config.toml");
+	}
+
+	if (process.platform === "win32") {
+		if (process.env.APPDATA) {
+			return join(process.env.APPDATA, "herdr", "config.toml");
+		}
+		if (process.env.USERPROFILE) {
+			return join(process.env.USERPROFILE, "AppData", "Roaming", "herdr", "config.toml");
+		}
+	}
+
+	if (process.env.HOME) {
+		return join(process.env.HOME, ".config", "herdr", "config.toml");
+	}
+	return join(tmpdir(), "herdr", "config.toml");
+}
+
+function expandHerdrPath(value: string): string {
+	const homeDirectory = getHerdrHomeDirectory();
+	if (value === "~" && homeDirectory) {
+		return homeDirectory;
+	}
+	if (
+		homeDirectory
+		&& (value.startsWith("~/") || (process.platform === "win32" && value.startsWith("~\\")))
+	) {
+		return join(homeDirectory, value.slice(2));
+	}
+	return resolve(value);
+}
+
+async function getHerdrWorktreeDirectory(): Promise<Result<string, WorktreeError>> {
+	let configuredDirectory = DEFAULT_HERDR_WORKTREE_DIRECTORY;
+	try {
+		const config = parseToml(await readFile(getHerdrConfigPath(), "utf8"));
+		if (isRecord(config.worktrees) && typeof config.worktrees.directory === "string") {
+			configuredDirectory = config.worktrees.directory;
+		}
+	} catch (cause: unknown) {
+		if (!isRecord(cause) || cause.code !== "ENOENT") {
+			return failure({
+				type: "command-exception",
+				action: "Could not read Herdr's worktree directory configuration",
+				cause,
+			});
+		}
+	}
+
+	return success(expandHerdrPath(configuredDirectory));
+}
+
+export function branchToPathSlug(branch: string): string {
+	return branch
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "") || "worktree";
+}
+
+export function chooseSplitDirection({ height, width }: PaneSize): SplitDirection {
+	return width >= height * WIDE_PANE_ASPECT_RATIO ? "right" : "down";
+}
+
+function parseInvokingPaneSize({
+	stdout,
+	paneId,
+}: {
+	stdout: string;
+	paneId: string;
+}): Result<PaneSize, WorktreeError> {
 	let response: unknown;
 	try {
 		response = JSON.parse(stdout);
 	} catch {
-		return failure({ type: "invalid-herdr-response", action: "create the worktree" });
+		return failure({ type: "invalid-herdr-response", action: "inspect the invoking pane layout" });
 	}
 
-	if (!isRecord(response) || !isRecord(response.result)) {
-		return failure({ type: "invalid-herdr-response", action: "create the worktree" });
+	if (!isRecord(response) || !isRecord(response.result) || !isRecord(response.result.layout)) {
+		return failure({ type: "invalid-herdr-response", action: "inspect the invoking pane layout" });
 	}
 
-	const rootPane = response.result.root_pane;
-	const worktree = response.result.worktree;
+	const panes = response.result.layout.panes;
+	if (!Array.isArray(panes)) {
+		return failure({ type: "invalid-herdr-response", action: "inspect the invoking pane layout" });
+	}
+
+	const pane = panes.find((candidate) => isRecord(candidate) && candidate.pane_id === paneId);
 	if (
-		!isRecord(rootPane)
-		|| typeof rootPane.pane_id !== "string"
-		|| !isRecord(worktree)
-		|| typeof worktree.path !== "string"
+		!isRecord(pane)
+		|| !isRecord(pane.rect)
+		|| typeof pane.rect.height !== "number"
+		|| typeof pane.rect.width !== "number"
 	) {
-		return failure({ type: "invalid-herdr-response", action: "create the worktree" });
+		return failure({ type: "invalid-herdr-response", action: "inspect the invoking pane layout" });
 	}
 
-	return success({ paneId: rootPane.pane_id, path: worktree.path });
+	return success({ height: pane.rect.height, width: pane.rect.width });
+}
+
+function parseCreatedPane(stdout: string): Result<string, WorktreeError> {
+	let response: unknown;
+	try {
+		response = JSON.parse(stdout);
+	} catch {
+		return failure({ type: "invalid-herdr-response", action: "create the worktree pane" });
+	}
+
+	if (
+		!isRecord(response)
+		|| !isRecord(response.result)
+		|| !isRecord(response.result.pane)
+		|| typeof response.result.pane.pane_id !== "string"
+	) {
+		return failure({ type: "invalid-herdr-response", action: "create the worktree pane" });
+	}
+
+	return success(response.result.pane.pane_id);
 }
 
 function formatError(error: WorktreeError): string {
@@ -420,6 +567,130 @@ function formatError(error: WorktreeError): string {
 	}
 }
 
+export async function createWorktreePane({
+	pi,
+	repository,
+	base,
+	branch,
+	path,
+	invokingPaneId,
+	agentName,
+	herdrLabel,
+}: {
+	pi: CommandExecutor;
+	repository: string;
+	base: string;
+	branch: string;
+	path: string;
+	invokingPaneId: string;
+	agentName: string;
+	herdrLabel: string;
+}): Promise<Result<{ paneId: string; splitDirection: SplitDirection }, WorktreeError>> {
+	const layout = await runCommand({
+		pi,
+		command: "herdr",
+		args: ["pane", "layout", "--pane", invokingPaneId],
+		action: "Could not inspect the invoking Herdr pane",
+	});
+	if (!layout.ok) {
+		return layout;
+	}
+
+	const paneSize = parseInvokingPaneSize({ stdout: layout.value.stdout, paneId: invokingPaneId });
+	if (!paneSize.ok) {
+		return paneSize;
+	}
+	const splitDirection = chooseSplitDirection(paneSize.value);
+
+	try {
+		await mkdir(dirname(path), { recursive: true });
+	} catch (cause: unknown) {
+		return failure({
+			type: "command-exception",
+			action: `Could not prepare the worktree directory for ${path}`,
+			cause,
+		});
+	}
+
+	const worktree = await runCommand({
+		pi,
+		command: "git",
+		args: ["worktree", "add", "-b", branch, path, base],
+		cwd: repository,
+		action: "Could not create the Git worktree",
+	});
+	if (!worktree.ok) {
+		return worktree;
+	}
+
+	const split = await runCommand({
+		pi,
+		command: "herdr",
+		args: [
+			"pane",
+			"split",
+			invokingPaneId,
+			"--direction",
+			splitDirection,
+			"--cwd",
+			path,
+			"--no-focus",
+		],
+		action: `Worktree created at ${path}, but the pane could not be created`,
+	});
+	if (!split.ok) {
+		return split;
+	}
+
+	const paneId = parseCreatedPane(split.value.stdout);
+	if (!paneId.ok) {
+		return paneId;
+	}
+
+	const rename = await runCommand({
+		pi,
+		command: "herdr",
+		args: ["pane", "rename", paneId.value, herdrLabel],
+		action: `Worktree and pane created at ${path}, but the pane could not be named`,
+	});
+	if (!rename.ok) {
+		return rename;
+	}
+
+	const start = await runCommand({
+		pi,
+		command: "herdr",
+		args: [
+			"agent",
+			"start",
+			agentName,
+			"--kind",
+			"pi",
+			"--pane",
+			paneId.value,
+			"--timeout",
+			"30000",
+		],
+		action: `Worktree and pane created at ${path}, but Pi could not be launched`,
+		timeout: 35_000,
+	});
+	if (!start.ok) {
+		return start;
+	}
+
+	const focus = await runCommand({
+		pi,
+		command: "herdr",
+		args: ["agent", "focus", agentName],
+		action: `Pi launched in pane ${paneId.value}, but the pane could not be focused`,
+	});
+	if (!focus.ok) {
+		return focus;
+	}
+
+	return success({ paneId: paneId.value, splitDirection });
+}
+
 async function createWorktree({
 	pi,
 	ctx,
@@ -429,20 +700,27 @@ async function createWorktree({
 	ctx: ExtensionCommandContext;
 	taskDescription: string;
 }): Promise<Result<{ branch: string; path: string; agentName: string; herdrLabel: string }, WorktreeError>> {
-	if (process.env.HERDR_ENV !== "1" || !process.env.HERDR_PANE_ID) {
+	const invokingPaneId = process.env.HERDR_PANE_ID;
+	if (process.env.HERDR_ENV !== "1" || !invokingPaneId) {
 		return failure({ type: "not-in-herdr" });
 	}
 
 	const repository = await findRepository({ pi, cwd: ctx.cwd });
-	if (!repository.ok) return repository;
+	if (!repository.ok) {
+		return repository;
+	}
 
 	const remote = await chooseRemote({ pi, ctx, repository: repository.value });
-	if (!remote.ok) return remote;
+	if (!remote.ok) {
+		return remote;
+	}
 
 	const suffix = randomBytes(RANDOM_SUFFIX_BYTES).toString("hex");
 	ctx.ui.setStatus(STATUS_KEY, "Generating branch and Herdr names...");
 	const metadata = await generateWorktreeMetadata({ ctx, taskDescription, suffix });
-	if (!metadata.ok) return metadata;
+	if (!metadata.ok) {
+		return metadata;
+	}
 
 	ctx.ui.setStatus(STATUS_KEY, `Fetching ${remote.value}...`);
 	const fetch = await runCommand({
@@ -452,72 +730,48 @@ async function createWorktree({
 		cwd: repository.value,
 		action: `Could not fetch ${remote.value}`,
 	});
-	if (!fetch.ok) return fetch;
+	if (!fetch.ok) {
+		return fetch;
+	}
 
 	const defaultBranch = await getDefaultBranch({
 		pi,
 		repository: repository.value,
 		remote: remote.value,
 	});
-	if (!defaultBranch.ok) return defaultBranch;
+	if (!defaultBranch.ok) {
+		return defaultBranch;
+	}
+
+	const worktreeDirectory = await getHerdrWorktreeDirectory();
+	if (!worktreeDirectory.ok) {
+		return worktreeDirectory;
+	}
 
 	const base = `${remote.value}/${defaultBranch.value}`;
+	const worktreePath = join(
+		worktreeDirectory.value,
+		basename(repository.value),
+		branchToPathSlug(metadata.value.branchName),
+	);
 	ctx.ui.setStatus(STATUS_KEY, `Creating ${metadata.value.branchName} from ${base}...`);
-	const create = await runCommand({
+	const pane = await createWorktreePane({
 		pi,
-		command: "herdr",
-		args: [
-			"worktree",
-			"create",
-			"--cwd",
-			repository.value,
-			"--branch",
-			metadata.value.branchName,
-			"--base",
-			base,
-			"--label",
-			metadata.value.herdrLabel,
-			"--focus",
-		],
-		action: "Could not create the Herdr worktree",
+		repository: repository.value,
+		base,
+		branch: metadata.value.branchName,
+		path: worktreePath,
+		invokingPaneId,
+		agentName: metadata.value.agentName,
+		herdrLabel: metadata.value.herdrLabel,
 	});
-	if (!create.ok) return create;
-
-	const worktree = parseCreatedWorktree(create.value.stdout);
-	if (!worktree.ok) return worktree;
-
-	ctx.ui.setStatus(STATUS_KEY, "Naming the Herdr pane...");
-	const rename = await runCommand({
-		pi,
-		command: "herdr",
-		args: ["pane", "rename", worktree.value.paneId, metadata.value.herdrLabel],
-		action: `Worktree created at ${worktree.value.path}, but the pane could not be named`,
-	});
-	if (!rename.ok) return rename;
-
-	ctx.ui.setStatus(STATUS_KEY, "Launching Pi in the worktree...");
-	const start = await runCommand({
-		pi,
-		command: "herdr",
-		args: [
-			"agent",
-			"start",
-			metadata.value.agentName,
-			"--kind",
-			"pi",
-			"--pane",
-			worktree.value.paneId,
-			"--timeout",
-			"30000",
-		],
-		action: `Worktree created at ${worktree.value.path}, but Pi could not be launched`,
-		timeout: 35_000,
-	});
-	if (!start.ok) return start;
+	if (!pane.ok) {
+		return pane;
+	}
 
 	return success({
 		branch: metadata.value.branchName,
-		path: worktree.value.path,
+		path: worktreePath,
 		agentName: metadata.value.agentName,
 		herdrLabel: metadata.value.herdrLabel,
 	});
@@ -525,7 +779,7 @@ async function createWorktree({
 
 export default function gitWorktreeExtension(pi: ExtensionAPI): void {
 	pi.registerCommand("worktree", {
-		description: "Generate task-aware names, create a worktree from the latest default branch, and launch Pi in Herdr",
+		description: "Create a task worktree and launch a named Pi agent in a new pane beside this one",
 		handler: async (args, ctx) => {
 			const taskDescription = args.trim();
 			if (!taskDescription) {
@@ -542,7 +796,7 @@ export default function gitWorktreeExtension(pi: ExtensionAPI): void {
 				}
 
 				ctx.ui.notify(
-					`Created ${result.value.branch} at ${result.value.path} and launched ${result.value.agentName} in “${result.value.herdrLabel}”`,
+					`Created branch ${result.value.branch} at ${result.value.path}; launched agent ${result.value.agentName} in new pane “${result.value.herdrLabel}” beside this pane`,
 					"info",
 				);
 			} finally {
