@@ -15,8 +15,9 @@
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
+    "test": "node --experimental-strip-types --test tests/**/*.test.ts",
     "pack:check": "npm pack --dry-run",
-    "check": "npm run typecheck && npm run pack:check"
+    "check": "npm run typecheck && npm test && npm run pack:check"
   },
   "pi": {
     "extensions": [
@@ -41,5 +42,8 @@
   },
   "engines": {
     "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "smol-toml": "^1.7.1"
   }
 }
