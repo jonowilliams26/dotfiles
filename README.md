@@ -6,6 +6,7 @@ Personal [Pi](https://pi.dev) extensions, skills, and prompt templates distribut
 
 | Extension | Overview |
 | --- | --- |
+| Dumb Zone | Automatically compacts context around 125K tokens, preserves a continuation checkpoint, and resumes interrupted tool-driven work. |
 | Git | Provides commands for returning a repository to its updated default branch and for creating task-aware Git worktrees in Herdr. |
 | Herdr | Reports Pi's working, blocked, and idle states to Herdr and synchronizes Pi session names with Herdr agent and pane names. |
 
@@ -13,6 +14,7 @@ Personal [Pi](https://pi.dev) extensions, skills, and prompt templates distribut
 
 | Command | Description |
 | --- | --- |
+| `/dumb-zone` | Show current context usage and the next automatic compaction threshold. |
 | `/main` | Discard confirmed uncommitted changes, switch to the remote's default branch, fast-forward it, and start a new Pi session. |
 | `/master` | Alias for `/main`. |
 | `/worktree <task description>` | Generate task-aware Git and Herdr names, create a worktree from the latest remote default branch, and launch Pi in its Herdr pane. |
