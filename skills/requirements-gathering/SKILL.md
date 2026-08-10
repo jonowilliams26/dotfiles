@@ -7,7 +7,7 @@ description: Run a requirements-only discovery session to establish shared under
 
 Conduct a conversation that produces a shared understanding of the requested outcome and its scope. This is exclusively a planning and requirements-gathering activity.
 
-Never implement the work, edit files, execute the plan, or transition into implementation, even after the requirements are approved. The final deliverable is an inline requirements document for the user to review.
+Never implement the work, edit implementation files, execute the plan, or transition into implementation, even after the requirements are approved. The only permitted file edits are updates to `docs/domain.md` when the domain-modeling skill is also active. The requirements deliverable is always an inline document for the user to review.
 
 ## Principles
 
