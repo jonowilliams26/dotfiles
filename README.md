@@ -8,6 +8,7 @@ Personal [Pi](https://pi.dev) extensions, skills, and prompt templates distribut
 | --- | --- |
 | Git | Provides commands for returning a repository to its updated default branch and for creating task-aware Git worktrees in adjacent Herdr panes. |
 | Herdr | Reports Pi's working, blocked, and idle states to Herdr and synchronizes Pi session names with Herdr agent and pane names. |
+| Smart Zone | Optionally compacts long-running sessions at 125K tokens, creates a continuation checkpoint, and resumes interrupted work. |
 
 ## Extension commands
 
@@ -15,6 +16,7 @@ Personal [Pi](https://pi.dev) extensions, skills, and prompt templates distribut
 | --- | --- |
 | `/main` | Discard confirmed uncommitted changes, switch to the remote's default branch, fast-forward it, and start a new Pi session. |
 | `/master` | Alias for `/main`. |
+| `/smart-zone [on\|off\|status]` | Toggle session-scoped Smart Zone compaction or explicitly enable, disable, or inspect it. It is disabled by default. |
 | `/worktree <task description>` | Generate task-aware Git and Herdr names, create a worktree from the latest remote default branch, and launch Pi in a new pane beside the invoking pane. |
 
 `/worktree` must run inside a Herdr-managed Pi pane. It creates one Git worktree under Herdr's configured worktree directory, then creates exactly one sibling pane in the current tab with that worktree as its working directory. Wide panes split right; narrow or tall panes split down. The new pane receives the generated task label and starts a dedicated named Pi agent. Focus stays on the invoking pane until Herdr confirms that the new Pi agent launched successfully; no workspace or tab is created, and partial failures leave any worktree or pane in place for manual recovery.
