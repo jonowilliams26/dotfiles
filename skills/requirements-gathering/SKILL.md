@@ -62,14 +62,14 @@ Not every session needs every category. Do not manufacture requirements or ask i
 
 ## Final requirements document
 
-When shared understanding appears complete, do not ask another question round. Produce a concise inline document for review using only confirmed information:
+When shared understanding appears complete, do not ask another question round. Produce a concise, self-contained inline document for review using only confirmed information. Write it as a handoff to a fresh agent with no access to the conversation or other prior context:
 
 ```markdown
 # Shared requirements
 
-## Objective
+## Goal
 
-<The desired outcome and its purpose.>
+<A concise statement of what is being worked on, the intended outcome, and why it matters.>
 
 ## Requirements
 
@@ -94,6 +94,6 @@ When shared understanding appears complete, do not ask another question round. P
 - <Observable condition that demonstrates success.>
 ```
 
-Include only applicable sections and add a clearly named section when the subject requires one. Do not include recommendations, guesses, or unresolved assumptions as confirmed requirements.
+The `Goal` section is always required and must appear first. Make every section understandable without referring to the conversation (for example, avoid phrases such as "as discussed" or unexplained pronouns). Include other sections only when applicable, and add a clearly named section when the subject requires one. Do not include recommendations, guesses, or unresolved assumptions as confirmed requirements.
 
 End by asking the user to review the document and identify corrections or omissions. If they provide changes, incorporate them and present the complete revised document again. If they approve it, conclude the requirements-gathering session without beginning implementation.
