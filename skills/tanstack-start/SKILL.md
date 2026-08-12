@@ -18,8 +18,10 @@ Before editing files for a substantial task:
 
 - `AddViteApp` owns the Vite HTTP endpoint and `PORT`; do not add another `.WithHttpEndpoint()` to the `web` resource.
 - TanStack Start code is isomorphic by default. Use `createServerFn` or `.server.ts` modules for secrets, filesystem access, environment variables, and backend-only work.
+- Keep backend-only logic used by a single server function directly inside that server function's handler in the `.functions.ts` file. Do not add unnecessary indirection by extracting it to a `.server.ts` function that merely gets called once.
+- Extract backend-only logic to a `.server.ts` module when it is reused by multiple server functions or other server-only entry points.
 - When using a TanStack server function in a React component, call it through the `useServerFn` hook rather than invoking the exported server function directly. Route loaders can invoke server functions directly.
-- Prefer the `.server.ts` filename convention for server-only modules instead of marker imports like `@tanstack/react-start/server-only`.
+- Prefer the `.server.ts` filename convention for reusable server-only modules instead of marker imports like `@tanstack/react-start/server-only`.
 - Keep `tanstackStart()` before `viteReact()` in Vite config, and keep `devtools()` first while the generated TanStack Devtools plugin is enabled.
 - Never run the frontend on its own. ALWAYS use Aspire to run the project.
 
@@ -29,7 +31,7 @@ Use the following folder structure to organise library code:
 
 ```
 src/lib/<module>
-├── <module>.functions.ts   # Server function wrappers (createServerFn)
-├── <module>.server.ts      # Server-only helpers (API calls, internal logic)
+├── <module>.functions.ts   # createServerFn definitions and single-use backend logic
+├── <module>.server.ts      # Reusable server-only helpers shared by server entry points
 └── <any-other-files>.ts    # Shared (client-safe)
 ```
