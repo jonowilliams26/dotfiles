@@ -47,6 +47,7 @@ Once the package is installed, skills are available to Pi automatically and can 
 | Template | Description |
 | --- | --- |
 | `/handover [additional context or focus]` | Produces a self-contained, zero-context handover for continuing the current task in a new session. |
+| `/plan [task or additional context]` | Creates an incremental implementation plan beginning with the narrowest end-to-end happy path. |
 | `/pr [additional context]` | Commits all repository changes, pushes a descriptive branch, and creates a non-draft GitHub pull request. |
 | `/requirements <context>` | Runs iterative requirements discovery while maintaining confirmed domain knowledge in `docs/domain.md`. |
 
