@@ -27,6 +27,23 @@ var customer = await customerRepository.GetAsync(customerId);
 var retryCount = 0;
 ```
 
+## Collection return types
+
+Keep collection return types concrete and simple. For materialized collections, return the concrete type the method creates, such as `T[]` or `List<T>`. Do not introduce `IReadOnlyList<T>` merely to hide the concrete type or imply immutability.
+
+Use `T[]` when returning a fixed-size result and `List<T>` when a list is the natural result. Use a collection abstraction only when an existing contract requires it or the method genuinely supports multiple implementations.
+
+```csharp
+// Bad
+public IReadOnlyList<Customer> GetCustomers() => customers.ToList();
+
+// Good
+public List<Customer> GetCustomers() => customers.ToList();
+
+// Good
+public Customer[] GetCustomers() => customers.ToArray();
+```
+
 ## Member names
 
 Use `nameof` whenever a string value identifies a member. Do not use member-name string literals.
