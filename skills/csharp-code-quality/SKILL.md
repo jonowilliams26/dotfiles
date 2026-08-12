@@ -87,6 +87,58 @@ if (condition)
 }
 ```
 
+## Multiline conditions
+
+Do not place a multiline condition directly inside an `if` statement. Extract it to a well-named boolean variable so the condition's meaning is clear and the `if` statement remains easy to scan. Name the variable for what being `true` means rather than using a generic name such as `condition`.
+
+```csharp
+// Bad
+if (values.Any(value =>
+        value < minimum ||
+        value > maximum))
+{
+    return false;
+}
+
+// Good
+var hasOutOfRangeValue = values.Any(value =>
+    value < minimum ||
+    value > maximum
+);
+
+if (hasOutOfRangeValue)
+{
+    return false;
+}
+```
+
+## Vertical spacing
+
+Use a single blank line between adjacent logical blocks when continuation indentation would otherwise make the boundary difficult to see. In particular, separate a multiline assignment or fluent expression from the statement that follows it.
+
+A blank line is not required between short, closely related statements merely because one is a control-flow statement. Do not use multiple consecutive blank lines.
+
+```csharp
+// Bad
+var total = items
+    .Select(item => item.Value)
+    .Sum();
+if (total > limit)
+{
+    return false;
+}
+
+// Good
+var total = items
+    .Select(item => item.Value)
+    .Sum();
+
+if (total > limit)
+{
+    return false;
+}
+```
+
 ## Immutable data types
 
 Define immutable data types as `record` types whose properties are `init` only. Do not model immutable data with a `class` or properties using `set`.
