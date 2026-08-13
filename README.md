@@ -47,9 +47,12 @@ Once the package is installed, skills are available to Pi automatically and can 
 | Template | Description |
 | --- | --- |
 | `/handover [additional context or focus]` | Produces a self-contained, zero-context handover for continuing the current task in a new session. |
-| `/plan [task or additional context]` | Creates an incremental implementation plan beginning with the narrowest end-to-end happy path. |
+| `/plan <issue-number> [additional context]` | Reads a GitHub issue, drafts an incremental implementation plan, and publishes it to the issue after explicit approval. |
+| `/plan-refine <issue-number> [additional context]` | Refines the remaining plan after an approved checkpoint review and replaces the issue's published plan after explicit approval. |
 | `/pr [additional context]` | Commits all repository changes, pushes a descriptive branch, and creates a non-draft GitHub pull request. |
-| `/requirements <context>` | Runs iterative requirements discovery while maintaining confirmed domain knowledge in `docs/domain.md`. |
+| `/requirements <context>` | Runs iterative requirements discovery, maintains confirmed domain knowledge, and creates a GitHub issue after explicit approval. |
+
+The intended delivery flow is `/requirements`, then `/plan <issue-number>` using the issue number returned after requirements approval. Approving the plan publishes it to the issue before checkpoint implementation begins. After each approved checkpoint review, use `/plan-refine <issue-number>` when the remaining plan needs to reflect what was learned; approving the refinement replaces the plan published on the issue.
 
 ## Install into a project
 
