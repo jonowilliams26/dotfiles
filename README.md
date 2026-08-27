@@ -7,7 +7,7 @@ Personal [Pi](https://pi.dev) extensions, skills, and prompt templates distribut
 | Extension | Overview |
 | --- | --- |
 | Git | Provides commands for returning a repository to its updated default branch and for creating task-aware Git worktrees in adjacent Herdr panes. |
-| Herdr | Reports Pi's working, blocked, and idle states to Herdr and synchronizes Pi session names with Herdr agent and pane names. |
+| Herdr | Synchronizes Pi session names with Herdr agent and pane names. |
 | Smart Zone | Optionally compacts long-running sessions at 125K tokens, creates a continuation checkpoint, and resumes interrupted work. |
 
 ## Extension commands
