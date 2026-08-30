@@ -23,6 +23,8 @@ const RANDOM_SUFFIX_BYTES = 3;
 const UNIQUE_SUFFIX_LENGTH = RANDOM_SUFFIX_BYTES * 2 + 1;
 const DEFAULT_HERDR_WORKTREE_DIRECTORY = "~/.herdr/worktrees";
 const WIDE_PANE_ASPECT_RATIO = 2;
+const AGENT_START_TIMEOUT_MS = 30_000;
+const AGENT_DETECTION_POLL_INTERVAL_MS = 100;
 const MAX_GENERATED_BRANCH_NAME_LENGTH = MAX_BRANCH_NAME_LENGTH - UNIQUE_SUFFIX_LENGTH;
 const MAX_GENERATED_AGENT_NAME_LENGTH = MAX_AGENT_NAME_LENGTH - UNIQUE_SUFFIX_LENGTH;
 const BRANCH_PREFIX_PATTERN = "(?:feature|bugfix|hotfix|chore|docs|refactor|test|ci|build|perf|security|release|revert)";
@@ -660,22 +662,43 @@ export async function createWorktreePane({
 	const start = await runCommand({
 		pi,
 		command: "herdr",
-		args: [
-			"agent",
-			"start",
-			agentName,
-			"--kind",
-			"pi",
-			"--pane",
-			paneId.value,
-			"--timeout",
-			"30000",
-		],
+		args: ["pane", "run", paneId.value, "pi.cmd"],
 		action: `Worktree and pane created at ${path}, but Pi could not be launched`,
-		timeout: 35_000,
 	});
 	if (!start.ok) {
 		return start;
+	}
+
+	const detectionDeadline = Date.now() + AGENT_START_TIMEOUT_MS;
+	let detected: ExecResult | undefined;
+	while (Date.now() < detectionDeadline) {
+		try {
+			const result = await pi.exec("herdr", ["agent", "get", paneId.value], { timeout: 5000 });
+			if (result.code === 0) {
+				detected = result;
+				break;
+			}
+		} catch {
+			// Retry until the startup deadline while Pi initializes and Herdr detects it.
+		}
+		await new Promise((resolvePromise) => setTimeout(resolvePromise, AGENT_DETECTION_POLL_INTERVAL_MS));
+	}
+	if (!detected) {
+		return failure({
+			type: "command-failed",
+			action: `Pi launched via pi.cmd in pane ${paneId.value}, but Herdr did not detect it`,
+			detail: `timed out after ${AGENT_START_TIMEOUT_MS}ms`,
+		});
+	}
+
+	const agentRename = await runCommand({
+		pi,
+		command: "herdr",
+		args: ["agent", "rename", paneId.value, agentName],
+		action: `Pi launched in pane ${paneId.value}, but the agent could not be named`,
+	});
+	if (!agentRename.ok) {
+		return agentRename;
 	}
 
 	const focus = await runCommand({
