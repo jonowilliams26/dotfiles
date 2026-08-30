@@ -50,7 +50,7 @@ async function runPaneCreation({
 				killed: false,
 			};
 		}
-		if (command === "herdr" && args[0] === "agent" && args[1] === "start" && failAgentStart) {
+		if (command === "herdr" && args[0] === "pane" && args[1] === "run" && failAgentStart) {
 			return { stdout: "", stderr: "agent failed", code: 1, killed: false };
 		}
 		return { stdout: "", stderr: "", code: 0, killed: false };
@@ -108,10 +108,10 @@ test("creates one right pane, launches Pi, then focuses it without creating a wo
 
 	const rename = invocations.find(({ args }) => args[0] === "pane" && args[1] === "rename");
 	assert.deepEqual(rename?.args, ["pane", "rename", "w1:p2", "Task pane"]);
-	const start = invocations.find(({ args }) => args[0] === "agent" && args[1] === "start");
-	assert.deepEqual(start?.args, [
-		"agent", "start", "task-agent-abc123", "--kind", "pi", "--pane", "w1:p2", "--timeout", "30000",
-	]);
+	const start = invocations.find(({ args }) => args[0] === "pane" && args[1] === "run");
+	assert.deepEqual(start?.args, ["pane", "run", "w1:p2", "pi.cmd"]);
+	const agentRename = invocations.find(({ args }) => args[0] === "agent" && args[1] === "rename");
+	assert.deepEqual(agentRename?.args, ["agent", "rename", "w1:p2", "task-agent-abc123"]);
 	const focus = invocations.find(({ args }) => args[0] === "agent" && args[1] === "focus");
 	assert.deepEqual(focus?.args, ["agent", "focus", "task-agent-abc123"]);
 
@@ -120,7 +120,9 @@ test("creates one right pane, launches Pi, then focuses it without creating a wo
 		"git worktree add",
 		"herdr pane split",
 		"herdr pane rename",
-		"herdr agent start",
+		"herdr pane run",
+		"herdr agent get",
+		"herdr agent rename",
 		"herdr agent focus",
 	]);
 });
@@ -142,6 +144,6 @@ test("does not focus or clean up resources when Pi fails to launch", async () =>
 		"git worktree add",
 		"herdr pane split",
 		"herdr pane rename",
-		"herdr agent start",
+		"herdr pane run",
 	]);
 });
