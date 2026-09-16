@@ -31,7 +31,7 @@ Use the following folder structure to organise library code:
 
 ```
 src/lib/<module>
-├── <module>.functions.ts   # createServerFn definitions and single-use backend logic
-├── <module>.server.ts      # Reusable server-only helpers shared by server entry points
-└── <any-other-files>.ts    # Shared (client-safe)
+├── <name>.functions.ts   # createServerFn definitions and single-use backend logic
+├── <name>.server.ts      # Reusable server-only helpers shared by server entry points
+└── <name>.ts             # Shared (client-safe)
 ```

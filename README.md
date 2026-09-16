@@ -27,17 +27,10 @@ Once the package is installed, skills are available to Pi automatically and can 
 
 | Skill | Overview |
 | --- | --- |
-| `aspire` | Routes Aspire distributed-application work to the appropriate specialized Aspire workflow. |
-| `aspire-init` | Creates or initializes an Aspire AppHost and hands resource wiring off to Aspireify. |
-| `aspire-monitoring` | Diagnoses Aspire resources through logs, traces, metrics, dashboard telemetry, and deployed Azure diagnostics. |
-| `aspire-orchestration` | Manages Aspire lifecycle operations and recovery from locks, port conflicts, and orphaned processes. |
-| `aspnet-core-code-quality` | Applies the repository's ASP.NET Core API and code-quality conventions. |
-| `csharp-code-quality` | Applies the repository's C# code-quality conventions. |
+| `csharp-code-quality` | Applies the repository's C# and ASP.NET Core project, API, and code-quality conventions. |
 | `domain-modeling` | Maintains domain concepts, ubiquitous language, business rules, and cardinality relationships in `docs/domain.md`. |
-| `dotnet-inspect` | Inspects local .NET packages, assemblies, APIs, dependencies, and version differences instead of guessing. |
 | `ef-core-code-quality` | Applies the repository's Entity Framework Core data-access conventions. |
 | `herdr` | Controls Herdr panes, tabs, workspaces, commands, and coding agents when explicitly requested. |
-| `playwright-cli` | Automates browser interaction, web-page testing, and Playwright test workflows. |
 | `requirements-gathering` | Establishes shared requirements and scope through iterative rounds of batched questions without beginning implementation. |
 | `tanstack-start` | Guides TanStack Start routes, loaders, server functions, React components, Vite configuration, and Aspire development. |
 | `typescript-code-quality` | Applies the repository's TypeScript code-quality conventions. |
