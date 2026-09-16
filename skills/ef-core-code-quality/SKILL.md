@@ -50,28 +50,3 @@ builder
 ```
 
 This explicit conversion is required because storing enum names differs from EF Core's default numeric representation.
-
-## Read-only queries
-
-Use `.AsNoTracking()` when a read-only query returns entities.
-
-```csharp
-Post? post = await dbContext.Posts
-    .AsNoTracking()
-    .SingleOrDefaultAsync(post => post.Id == id);
-```
-
-When only specific columns are required, prefer a projection with `.Select()` instead of loading complete entities. Do not include an entity instance in the projection when the query is intended to avoid tracking.
-
-```csharp
-PostSummary? post = await dbContext.Posts
-    .Where(post => post.Id == id)
-    .Select(post => new PostSummary
-    {
-        Id = post.Id,
-        Title = post.Title,
-    })
-    .SingleOrDefaultAsync();
-```
-
-When reviewing EF Core code, identify each violation and propose or apply a correction that follows these conventions.
